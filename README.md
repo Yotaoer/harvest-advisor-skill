@@ -1,53 +1,57 @@
 # Harvest Advisor Skill
 
-按业务行为对照己方仓库与一个外部参考仓库，把架构和实现差异整理成带证据锚点的建议：采纳、适配、不采用或观察。输出是供人审阅的报告和待审批任务，不是迁移或实施工具。详情见 [SKILL.md](SKILL.md) 和 [Agent Skills 规格](https://agentskills.io/specification)。
+**English** | [简体中文](README.zh-CN.md)
 
-## 运行示例
+Compare your repository with one external reference repository, matching what the two projects do rather than how their directories are organized. The skill turns architecture and implementation differences into recommendations backed by source evidence: `adopt`, `adapt`, `reject`, or `watch`. It produces reports for human review and tasks that require approval. It does not migrate or implement changes. See [SKILL.md](SKILL.md) and the [Agent Skills specification](https://agentskills.io/specification).
 
-以下截图来自本机查看器对 [Markdown CLI 合成样例（简体中文）](viewer/examples/markdown-cli.zh-Hans.json) 的实际运行，不包含真实仓库数据。
+## Example Run
 
-![虚构的 Marginlint 与 Inkcheck 双仓架构总览，展示输入、检查和输出职责的对应关系](docs/images/viewer-overview.png)
+These screenshots show the actual local viewer in Simplified Chinese, using the public [synthetic Markdown CLI report](viewer/examples/markdown-cli.zh-Hans.json). They contain no real repository data. You can also load the [English version of the same example](viewer/examples/markdown-cli.json).
 
-![点开输出职责差异后的详情，显示退出码适配建议、双方证据和待审批的验收测试](docs/images/viewer-detail.png)
+![Architecture overview aligning input, checking, and output responsibilities across the fictional Marginlint and Inkcheck repositories](docs/images/viewer-overview.png)
 
-## 读写边界
+![Output responsibility comparison showing an exit-code recommendation, evidence from both sides, and an acceptance-test task awaiting approval](docs/images/viewer-detail.png)
 
-- 仅在授权范围内静态阅读两仓，不运行它们的代码、测试、安装、构建、脚本或钩子，不改代码、不创建 Issue 或 PR，不发送私有内容。
-- 默认只在授权的本地工作区写入 `harvest-advisor-reports/<unique-run>/report.json`，不覆盖或删除旧报告，不写外部参考仓库。仅对话、只离线或不要预览均可明确指定。
-- 新交付的 `adopt` / `adapt` 候选每项要有至少一条 `approval` 待审批任务；`watch` 要有 `recheck` 验证动作与触发条件。`save` 拒绝不完整的新交付，查看器和 `open` 仍能读取兼容 v1 的旧报告。
+## Read and Write Boundaries
 
-## 项目级安装与调用
+- The skill only performs static review of the two repositories within the authorized scope. It does not run their code, tests, builds, scripts, or hooks, install their dependencies, modify code, open issues or pull requests, or transmit private content.
+- By default, it writes `harvest-advisor-reports/<unique-run>/report.json` only in the authorized local workspace. It never overwrites or deletes earlier reports or writes to the external reference repository. You can request delivery in chat only, offline operation, or no preview.
+- In new reports, each `adopt` or `adapt` recommendation needs at least one `approval` task. Each `watch` recommendation needs a `recheck` action and a condition for revisiting it. `save` rejects incomplete new reports, while the viewer and `open` still accept older v1-compatible reports.
 
-从受审查的 Git 快照获取完整的 `harvest-advisor-skill/` 目录，有需要时放入项目根下对应位置。保持目录名不变，并保留 `SKILL.md`、`package.json`、`references/`、`scripts/`、`viewer/` 等内容，不能只复制 `SKILL.md`。
+## Project-Level Installation and Use
 
-| 宿主 | 相对项目根的安装位置 |
+Take the complete `harvest-advisor-skill/` directory from a reviewed Git snapshot and place it in the appropriate location under your project root. Keep the directory name and its contents intact, including `SKILL.md`, `package.json`, `references/`, `scripts/`, and `viewer/`. Copying `SKILL.md` alone is not enough.
+
+| Host | Path relative to the project root |
 | --- | --- |
 | [Codex](https://developers.openai.com/codex/skills) | `.agents/skills/harvest-advisor-skill/` |
 | [Claude Code](https://code.claude.com/docs/en/skills) | `.claude/skills/harvest-advisor-skill/` |
 | [Cursor](https://cursor.com/docs/skills) | `.cursor/skills/harvest-advisor-skill/` |
 
-上述路径按宿主官方文档列出，不表示已在三个宿主中分别实测。在目标项目中启动会话，选择该技能或在提示中点名，例如：
+The paths above come from the hosts' official documentation. End-to-end use has not been verified on all three hosts individually. Start a session in the target project and select the skill or name it in your prompt:
 
-> 使用 harvest-advisor-skill，只读比较当前仓库与 `<外部参考仓库 URL>` 的错误恢复流程。按相同行为对照，分别列出双方证据和待审批任务。
+> Use harvest-advisor-skill to compare error recovery in the current repository and `<reference repository URL>` without modifying either. Match equivalent behaviors, cite evidence from both repositories, and list any tasks that need approval.
 
-## 离线快跑与本机预览
+## Offline Quick Start and Local Preview
 
-直接用浏览器打开 [viewer/index.html](viewer/index.html)，点击导入，任选一份合成报告：
+Open [viewer/index.html](viewer/index.html) directly in a browser, click **Import JSON**, and choose a synthetic report:
 
-- [Markdown CLI（英文）](viewer/examples/markdown-cli.json)
-- [Markdown CLI（简体中文）](viewer/examples/markdown-cli.zh-Hans.json)
-- [预约系统对照（英文）](viewer/examples/reservations.json)
+- [Markdown CLI (English)](viewer/examples/markdown-cli.json)
+- [Markdown CLI (Simplified Chinese)](viewer/examples/markdown-cli.zh-Hans.json)
+- [Reservation system comparison (English)](viewer/examples/reservations.json)
 
-离线查看器不需要 Node.js。保存报告和启动本机预览的最低版本是 Node.js 20，无额外依赖；日常使用建议选择 [仍受维护的 Node.js LTS](https://nodejs.org/en/about/previous-releases)。预览只绑定 `127.0.0.1`，只提供选定报告和查看器资源，不对公网发布；链接应只在本机使用。宿主有原生侧栏时可打开预览，没有就返回本机 URL 和报告路径；无本机预览时仍可手动导入，无法安全落盘时回退到对话。详见 [本地交付流程](references/local-delivery.md) 和 [v1 契约](viewer/CONTRACT.md)。
+The offline viewer does not require Node.js. Saving reports and starting the local preview require Node.js 20 or later and no additional dependencies. For everyday use, choose a [maintained Node.js LTS release](https://nodejs.org/en/about/previous-releases).
 
-## 本地验证与分发
+The preview binds only to `127.0.0.1` and serves only the selected report and viewer assets. Its URL is for use on the same machine only. Where a native sidebar is available, the skill can open the preview there. Otherwise, it returns the local URL and report path. If local preview is unavailable, open the viewer and import the report manually. If the report cannot be saved safely, the skill delivers it in chat. See [Local delivery](references/local-delivery.md) and the [v1 report contract](viewer/CONTRACT.md).
 
-在技能目录运行：
+## Local Tests and Distribution
+
+From the skill directory, run:
 
 ```sh
 node --test scripts/preview.test.cjs viewer/contract.test.cjs viewer/graph-layout.test.cjs
 ```
 
-**分发时只从已审查的 Git 快照打包，不要直接压缩整个本地目录。** 本项目的忽略规则排除本地报告和真实报告副本；公开样例仅限上列三份合成数据。使用方可自行在其项目的 `.gitignore` 中加入 `/harvest-advisor-reports/`，Skill 不会替用户修改该文件。
+**Distribute only a reviewed Git snapshot. Do not archive the entire local directory.** This repository's ignore rules exclude local reports and copies of real reports. The only public examples are the three synthetic reports listed above. You can add `/harvest-advisor-reports/` to your own project's `.gitignore`; the skill does not modify it for you.
 
-本项目采用 [MIT 许可证](LICENSE)。
+Licensed under the [MIT License](LICENSE).
