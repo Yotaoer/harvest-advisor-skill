@@ -2,6 +2,14 @@
 
 按业务行为对照己方仓库与一个外部参考仓库，把架构和实现差异整理成带证据锚点的建议：采纳、适配、不采用或观察。输出是供人审阅的报告和待审批任务，不是迁移或实施工具。详情见 [SKILL.md](SKILL.md) 和 [Agent Skills 规格](https://agentskills.io/specification)。
 
+## 运行示例
+
+以下截图来自本机查看器对 [Markdown CLI 合成样例（简体中文）](viewer/examples/markdown-cli.zh-Hans.json) 的实际运行，不包含真实仓库数据。
+
+![虚构的 Marginlint 与 Inkcheck 双仓架构总览，展示输入、检查和输出职责的对应关系](docs/images/viewer-overview.png)
+
+![点开输出职责差异后的详情，显示退出码适配建议、双方证据和待审批的验收测试](docs/images/viewer-detail.png)
+
 ## 读写边界
 
 - 仅在授权范围内静态阅读两仓，不运行它们的代码、测试、安装、构建、脚本或钩子，不改代码、不创建 Issue 或 PR，不发送私有内容。
