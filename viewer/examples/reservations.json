@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "title": "Reservation topology (synthetic)",
+  "repositories": {
+    "own": { "id": "stationdesk", "name": "Stationdesk monolith", "revision": { "kind": "revision", "value": "station-demo-a" } },
+    "reference": { "id": "slotmesh", "name": "Slotmesh services", "revision": { "kind": "snapshot", "value": "slot-demo-b", "state": "Fictional sources without deployment credentials" } }
+  },
+  "scope": {
+    "goal": "Compare reservation ownership across a monolith and separate services.",
+    "included": ["Reservation request handling", "Availability and confirmation", "Cancellation observability"],
+    "excluded": ["Production traffic", "Runtime partner integrations"],
+    "gaps": [{ "id": "M-scope", "label": "Deployment routing unavailable", "note": "Reviewed synthetic source and manifests only; actual routing or worker activation is not established." }]
+  },
+  "nodes": [
+    { "id": "M-gateway", "repo": "stationdesk", "label": "Reservation endpoint", "group": "Application", "evidence": ["M-E01"] },
+    { "id": "M-domain", "repo": "stationdesk", "label": "Reservation module", "group": "Application", "evidence": ["M-E02"] },
+    { "id": "M-cancel", "repo": "stationdesk", "label": "Cancellation audit", "group": "Operations", "evidence": ["M-E03"] },
+    { "id": "S-api", "repo": "slotmesh", "label": "Reservation endpoint", "group": "Public API", "evidence": ["M-E04"] },
+    { "id": "S-availability", "repo": "slotmesh", "label": "Availability service", "group": "Domain services", "evidence": ["M-E05"] },
+    { "id": "S-confirm", "repo": "slotmesh", "label": "Confirmation service", "group": "Domain services", "evidence": ["M-E06"] },
+    { "id": "S-worker", "repo": "slotmesh", "label": "Partner retry worker", "group": "Operations", "evidence": [], "evidenceGap": "Mentioned in the fictional handoff notes; no corresponding source locator was supplied." }
+  ],
+  "edges": [
+    { "id": "M-dispatch", "kind": "call", "from": "M-gateway", "to": "M-domain", "label": "Invoke reserve", "evidence": ["M-E01"] },
+    { "id": "S-get-slots", "kind": "dependency", "from": "S-api", "to": "S-availability", "label": "Uses the availability client", "evidence": ["M-E04"] },
+    { "id": "S-confirm-hold", "kind": "data", "from": "S-availability", "to": "S-confirm", "label": "Passes the held-slot identifier", "evidence": ["M-E05", "M-E06"] }
+  ],
+  "correspondences": [
+    { "id": "M-entry", "status": "matched", "label": "Request ownership starts at the endpoint", "own": ["M-gateway"], "reference": ["S-api"], "evidence": ["M-E01", "M-E04"], "note": "Each entry accepts and validates the reservation request. They do not call across repositories." },
+    { "id": "M-split", "status": "matched", "label": "One module, two service responsibilities", "own": ["M-domain"], "reference": ["S-availability", "S-confirm"], "evidence": ["M-E02", "M-E05", "M-E06"], "note": "One monolith module owns holding a slot and confirming the reservation; the reference splits the same responsibilities." },
+    { "id": "M-audit-gap", "status": "checked-no-match", "label": "Cancellation audit not matched in reviewed paths", "own": ["M-cancel"], "reference": [], "evidence": ["M-E03", "M-E06"], "note": "Reference API and confirmation service sources were checked for a cancellation audit writer. Neither inspected path provided a match. Other services were outside scope." },
+    { "id": "M-retry-gap", "status": "unverified", "label": "Partner retries remain unverified", "own": [], "reference": ["S-worker"], "evidence": [], "note": "The worker was mentioned, but no source, configuration, or own-side counterpart was established." }
+  ],
+  "evidence": [
+    { "id": "M-E01", "repo": "stationdesk", "revision": "station-demo-a", "path": "app/http/reservations.rb", "range": { "start": 8, "end": 22 }, "supports": "Routes validated creation requests into the reservation module.", "limits": "Reservation creation only." },
+    { "id": "M-E02", "repo": "stationdesk", "revision": "station-demo-a", "path": "app/domain/reservation.rb", "symbol": "Reservation.reserve", "supports": "Holds a window and confirms the reservation in one module.", "limits": "No transaction isolation behavior was measured." },
+    { "id": "M-E03", "repo": "stationdesk", "revision": "station-demo-a", "path": "app/ops/cancellation_audit.rb", "range": { "start": 14, "end": 25 }, "supports": "Records cancellation transitions in an audit sink.", "limits": "The retention policy was not inspected." },
+    { "id": "M-E04", "repo": "slotmesh", "revision": "slot-demo-b", "path": "public-api/reserve/handler.go", "range": { "start": 24, "end": 52 }, "supports": "Accepts reservation requests and depends on the availability client.", "limits": "Deployed routes were not checked." },
+    { "id": "M-E05", "repo": "slotmesh", "revision": "slot-demo-b", "path": "availability/hold.go", "symbol": "HoldSlot", "supports": "Issues an identifier for a held slot and forwards it to confirmation.", "limits": "Service communication was not observed at runtime." },
+    { "id": "M-E06", "repo": "slotmesh", "revision": "slot-demo-b", "path": "confirmation/service.go", "range": { "start": 37, "end": 69 }, "supports": "Consumes held-slot identifiers and commits confirmations. No cancellation audit writer is present in this inspected path.", "limits": "Other services and deployed sidecars are not covered." }
+  ],
+  "views": {
+    "overview": {
+      "id": "M-overview", "label": "Architecture overview", "note": "Application responsibilities are compared with their service counterparts.",
+      "nodes": ["M-gateway", "M-domain", "M-cancel", "S-api", "S-availability", "S-confirm", "S-worker"],
+      "edges": ["M-dispatch", "S-get-slots", "S-confirm-hold"],
+      "correspondences": ["M-entry", "M-split", "M-audit-gap", "M-retry-gap"]
+    }
+  },
+  "candidates": [
+    {
+      "id": "H-retry", "title": "Revisit partner retry ownership", "decision": "watch", "approach": "status-quo",
+      "targets": ["M-retry-gap"],
+      "evidence": { "own": [], "reference": [] },
+      "evidenceGap": "Neither a concrete retry entry point nor deployed worker configuration was supplied.",
+      "fact": "This report has no anchored retry trace for either repository.",
+      "inference": "Moving responsibilities before the boundary is traced would risk duplicating retries.",
+      "recommendation": "Keep the current design and gather static evidence before comparing alternatives.",
+      "benefit": "Unknown until ownership and failure handling are documented.",
+      "license": "No code reuse or distribution change proposed.",
+      "stackFit": "Not evaluated.",
+      "maintenanceCost": "Not evaluated.",
+      "architectureImpact": "None proposed."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-retry", "candidate": "H-retry", "kind": "recheck", "title": "Trace configured retry ownership",
+      "evidence": [],
+      "action": "Locate registry and configuration entries naming the retry worker, then trace each repo from entry point to ownership.",
+      "condition": "Revisit when there is a recheckable source and configuration anchor for both repositories."
+    }
+  ]
+}

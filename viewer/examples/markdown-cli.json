@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "language": "en",
+  "title": "Markdown CLI comparison (synthetic)",
+  "repositories": {
+    "own": { "id": "marginlint", "name": "Marginlint", "revision": { "kind": "revision", "value": "demo-cli-01", "state": "Fictional, clean snapshot" } },
+    "reference": { "id": "inkcheck", "name": "Inkcheck", "revision": { "kind": "snapshot", "value": "demo-cli-02", "state": "Fictional, read-only snapshot" } }
+  },
+  "scope": {
+    "goal": "Compare Markdown diagnostics and exit behavior for local runs and automation.",
+    "included": ["Argument parsing", "Rule dispatch", "Reporting", "Exit outcomes"],
+    "excluded": ["Rule parity", "Runtime execution", "Distribution tooling"],
+    "gaps": [
+      { "id": "G-runtime", "label": "Runtime not checked", "note": "All locators are invented for this example. The proposed acceptance tests were not run." }
+    ]
+  },
+  "nodes": [
+    { "id": "N-own-args", "repo": "marginlint", "label": "Parse arguments", "evidence": ["E-01"] },
+    { "id": "N-own-lint", "repo": "marginlint", "label": "Check Markdown", "evidence": ["E-02"] },
+    { "id": "N-own-output", "repo": "marginlint", "label": "Write diagnostics", "evidence": ["E-03", "E-04"] },
+    { "id": "N-ref-args", "repo": "inkcheck", "label": "Parse arguments", "evidence": ["E-05"] },
+    { "id": "N-ref-lint", "repo": "inkcheck", "label": "Check Markdown", "evidence": ["E-06"] },
+    { "id": "N-ref-text", "repo": "inkcheck", "label": "Write readable text", "evidence": ["E-07"] },
+    { "id": "N-ref-json", "repo": "inkcheck", "label": "Write JSON results", "evidence": ["E-07", "E-08"] },
+    { "id": "N-ref-exit", "repo": "inkcheck", "label": "Exit on input error", "evidence": ["E-09", "E-10"] }
+  ],
+  "edges": [
+    { "id": "L-own-check", "kind": "call", "from": "N-own-args", "to": "N-own-lint", "label": "Dispatch rules", "evidence": ["E-01"] },
+    { "id": "L-own-diagnostics", "kind": "data", "from": "N-own-lint", "to": "N-own-output", "label": "Pass findings to text output", "evidence": ["E-03"] },
+    { "id": "L-ref-check", "kind": "call", "from": "N-ref-args", "to": "N-ref-lint", "label": "Dispatch rules", "evidence": ["E-05"] },
+    { "id": "L-ref-text", "kind": "data", "from": "N-ref-lint", "to": "N-ref-text", "label": "Pass findings to text writer", "evidence": ["E-07"] },
+    { "id": "L-ref-json", "kind": "data", "from": "N-ref-lint", "to": "N-ref-json", "label": "Pass findings to JSON writer", "evidence": ["E-07"] },
+    { "id": "L-ref-exit", "kind": "call", "from": "N-ref-args", "to": "N-ref-exit", "label": "Handle unreadable input", "evidence": ["E-09"] }
+  ],
+  "correspondences": [
+    { "id": "C-input", "status": "matched", "label": "Both CLIs parse options at entry", "own": ["N-own-args"], "reference": ["N-ref-args"], "evidence": ["E-01", "E-05"], "note": "Both entry points normalize input before dispatching rule checks." },
+    { "id": "C-check", "status": "matched", "label": "Both CLIs dispatch Markdown rules", "own": ["N-own-lint"], "reference": ["N-ref-lint"], "evidence": ["E-02", "E-06"], "note": "The responsibility matches; the rule inventory was not compared." },
+    { "id": "C-output", "status": "matched", "label": "Reporting is split in the reference", "own": ["N-own-output"], "reference": ["N-ref-text", "N-ref-json"], "evidence": ["E-03", "E-07", "E-08"], "note": "Marginlint has one writer; Inkcheck dispatches to separate text and JSON writers. The handoff focuses only on exit outcomes." },
+    { "id": "C-exit", "status": "checked-no-match", "label": "No matching exit-code test in scope", "own": [], "reference": ["N-ref-exit"], "evidence": ["E-04", "E-09", "E-10"], "note": "The own CLI tests and entry path were checked for an explicit unreadable-input exit-code assertion. None was identified in that scope; the CLI may still return a useful code." }
+  ],
+  "evidence": [
+    { "id": "E-01", "repo": "marginlint", "revision": "demo-cli-01", "path": "src/cli.ts", "range": { "start": 12, "end": 29 }, "supports": "Parses flags and passes normalized inputs to the checker.", "limits": "Static flow; no runtime confirmation." },
+    { "id": "E-02", "repo": "marginlint", "revision": "demo-cli-01", "path": "src/check.ts", "symbol": "runRules", "supports": "Evaluates configured Markdown rules and accumulates findings.", "limits": "Does not establish parity with other rule sets." },
+    { "id": "E-03", "repo": "marginlint", "revision": "demo-cli-01", "path": "src/cli.ts", "range": { "start": 30, "end": 44 }, "supports": "Forwards findings to one text writer. The CLI owns exit handling.", "limits": "No actual process exit was measured." },
+    { "id": "E-04", "repo": "marginlint", "revision": "demo-cli-01", "path": "test/cli.test.ts", "range": { "start": 9, "end": 38 }, "supports": "In-scope cases assert diagnostics text but do not assert the process exit code.", "limits": "Only covers this inspected test suite." },
+    { "id": "E-05", "repo": "inkcheck", "revision": "demo-cli-02", "path": "cmd/inkcheck/main.go", "range": { "start": 20, "end": 42 }, "supports": "Parses the command-line options and invokes the rule engine.", "limits": "Static routing only." },
+    { "id": "E-06", "repo": "inkcheck", "revision": "demo-cli-02", "path": "internal/lint/run.go", "symbol": "Run", "supports": "Runs Markdown checks and returns structured findings.", "limits": "Rules and performance not compared." },
+    { "id": "E-07", "repo": "inkcheck", "revision": "demo-cli-02", "path": "internal/report/write.go", "range": { "start": 14, "end": 41 }, "supports": "Selects either the readable text writer or the JSON writer using the format flag.", "limits": "Output compatibility with Marginlint was not checked." },
+    { "id": "E-08", "repo": "inkcheck", "revision": "demo-cli-02", "path": "internal/report/json.go", "symbol": "writeJSON", "supports": "Serializes machine-readable diagnostics.", "limits": "Serialization was not executed." },
+    { "id": "E-09", "repo": "inkcheck", "revision": "demo-cli-02", "path": "cmd/inkcheck/main.go", "range": { "start": 43, "end": 59 }, "supports": "Routes unreadable input to an explicit error exit.", "limits": "The branch was traced statically." },
+    { "id": "E-10", "repo": "inkcheck", "revision": "demo-cli-02", "path": "cmd/inkcheck/main_test.go", "range": { "start": 44, "end": 71 }, "supports": "Test source distinguishes success, findings, and unreadable input with exit codes 0, 1, and 2.", "limits": "Test source is evidence of assertions, not a passing run." }
+  ],
+  "views": {
+    "overview": {
+      "id": "V-overview", "label": "Architecture overview", "note": "Input, rule checking, and reporting responsibilities.",
+      "nodes": ["N-own-args", "N-own-lint", "N-own-output", "N-ref-args", "N-ref-lint", "N-ref-text", "N-ref-json", "N-ref-exit"],
+      "edges": ["L-own-check", "L-own-diagnostics", "L-ref-check", "L-ref-text", "L-ref-json", "L-ref-exit"],
+      "correspondences": ["C-input", "C-check", "C-output", "C-exit"]
+    },
+    "flows": [
+      {
+        "id": "V-output", "label": "Diagnostics and exit flow", "note": "One shared CLI run, including the reference-only error branch.",
+        "nodes": ["N-own-args", "N-own-lint", "N-own-output", "N-ref-args", "N-ref-lint", "N-ref-text", "N-ref-json", "N-ref-exit"],
+        "edges": ["L-own-check", "L-own-diagnostics", "L-ref-check", "L-ref-text", "L-ref-json", "L-ref-exit"],
+        "correspondences": ["C-output", "C-exit"]
+      }
+    ]
+  },
+  "candidates": [
+    {
+      "id": "H-01", "title": "Specify stable CLI exit outcomes", "decision": "adapt", "approach": "test-cases-only",
+      "targets": ["C-output", "C-exit", "N-ref-exit"],
+      "evidence": { "own": ["E-03", "E-04"], "reference": ["E-09", "E-10"] },
+      "fact": "The own CLI's inspected suite checks diagnostics text. The reference suite asserts separate exit codes for clean input, findings, and input errors.",
+      "inference": "An equivalent behavioral test could stabilize the integration boundary without duplicating the formatter split.",
+      "recommendation": "Borrow the acceptance cases only; implement them independently in the existing test stack. Do not copy source.",
+      "benefit": "Automation can distinguish findings from an invocation or input failure.",
+      "license": "No source reuse proposed. Reference license or distribution permission not assessed.",
+      "stackFit": "The acceptance cases are process-level and can be expressed with the existing TypeScript test runner.",
+      "maintenanceCost": "Three process-level fixtures and stable expected codes; no new runtime dependency.",
+      "architectureImpact": "Keep parsing, checking, and text output intact. Change only the observed CLI outcome contract if required."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-cli-exit", "candidate": "H-01", "kind": "approval", "title": "Add exit-code acceptance tests",
+      "modules": ["test/cli.test.ts", "src/cli.ts (only if behavior differs)"],
+      "dependencies": ["Confirm the public exit-code mapping before changes."],
+      "steps": ["Add own test inputs for clean input, violations, and an unreadable file.", "Assert the process result without depending on text formatting."],
+      "acceptance": "Clean input exits 0; Markdown findings exit 1; unreadable input exits 2. Existing text diagnostics remain unchanged.",
+      "rollback": "Revert the new assertions and any exit-code changes; no state or migration to roll back.",
+      "evidence": ["E-03", "E-04", "E-09", "E-10"]
+    }
+  ]
+}

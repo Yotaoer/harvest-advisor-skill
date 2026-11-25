@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src file:; style-src file:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title data-i18n="pageTitle">Harvest Advisor | Report Viewer</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="contract.js" defer></script>
+  <script src="messages.js" defer></script>
+  <script src="graph-layout.js" defer></script>
+  <script src="viewer.js" defer></script>
+</head>
+<body>
+  <header id="toolbar" class="toolbar">
+    <div class="topbar tool-surface">
+      <div class="wordmark">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6h10M7 18h10M6 8v8m12-8v8"/><rect x="3.5" y="3.5" width="5" height="5" rx="1"/><rect x="15.5" y="3.5" width="5" height="5" rx="1"/><rect x="3.5" y="15.5" width="5" height="5" rx="1"/><rect x="15.5" y="15.5" width="5" height="5" rx="1"/></svg>
+        <h1 lang="en">Harvest Advisor</h1>
+      </div>
+      <div class="header-actions">
+        <label class="language-control">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20"/></svg>
+          <select id="language-select" aria-label="Interface language" data-i18n-aria="language">
+            <option value="auto" data-i18n="auto">Auto</option>
+            <option value="zh-Hans" lang="zh-Hans">简体中文</option>
+            <option value="en" lang="en">English</option>
+          </select>
+        </label>
+        <button id="import-button" class="primary" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m14-7-5-5-5 5m5-5v12"/></svg>
+          <span data-i18n="importJson">Import JSON</span>
+        </button>
+        <input id="report-file" type="file" accept=".json,application/json" hidden>
+      </div>
+    </div>
+    <div id="report" class="report-tools tool-surface" hidden>
+      <select id="view-select" aria-label="Report view" data-i18n-aria="reportView"></select>
+      <details id="scope-panel" class="tool-menu">
+        <summary id="scope-summary" data-i18n="scopeTool">Scope</summary>
+        <div class="menu-body scope-body">
+          <h2 id="report-title"></h2>
+          <p id="report-goal"></p>
+          <h3 id="view-title"></h3>
+          <p id="view-note" class="muted"></p>
+          <div id="scope-body"></div>
+        </div>
+      </details>
+      <details id="legend-panel" class="tool-menu">
+        <summary data-i18n="diagramKey">Diagram key</summary>
+        <div class="menu-body legend-body">
+          <ul class="legend" aria-label="Diagram key" data-i18n-aria="diagramKey">
+            <li><span class="mark call" aria-hidden="true"></span><span data-i18n="call">Call</span></li>
+            <li><span class="mark data" aria-hidden="true"></span><span data-i18n="dataShort">Data</span></li>
+            <li><span class="mark dependency" aria-hidden="true"></span><span data-i18n="dependency">Dependency</span></li>
+            <li><span class="mark matched" aria-hidden="true"></span><span data-i18n="matched">Correspondence</span></li>
+            <li><span class="mark gap" aria-hidden="true"></span><span data-i18n="coverageGap">Coverage gap</span></li>
+          </ul>
+        </div>
+      </details>
+      <details id="index-panel" class="tool-menu">
+        <summary id="index-summary" data-i18n="directory">Directory</summary>
+        <div id="graph-index" class="menu-body graph-index"></div>
+      </details>
+    </div>
+  </header>
+  <div id="import-error" class="notice error" role="alert" hidden></div>
+  <p id="import-status" class="sr-only" role="status"></p>
+  <noscript><p class="notice error">JavaScript is required to open local JSON reports.</p></noscript>
+  <main id="canvas" class="canvas" tabindex="0" aria-label="Architecture canvas" data-i18n-aria="canvasLabel">
+    <svg class="grid-pattern" aria-hidden="true">
+      <defs><pattern id="canvas-dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1"/></pattern></defs>
+      <rect width="100%" height="100%" fill="url(#canvas-dots)"/>
+    </svg>
+    <div class="pan-surface" aria-hidden="true"></div>
+    <section id="empty" class="empty" aria-labelledby="empty-title">
+      <h2 id="empty-title" data-i18n="emptyTitle">No report loaded</h2>
+      <p data-i18n="emptyNote">Choose a local JSON report.</p>
+    </section>
+    <div id="graph" class="graph" role="group" aria-label="Repository swimlanes" data-i18n-aria="swimlanes" hidden>
+      <div id="own-lane" class="lane own"></div>
+      <div id="reference-lane" class="lane reference"></div>
+      <svg id="wires" class="wires" aria-hidden="true"></svg>
+    </div>
+    <svg id="leader" class="leader" aria-hidden="true" hidden><path/><circle r="3"/></svg>
+    <aside id="inspector" class="inspector tool-surface" aria-labelledby="inspector-title" hidden>
+      <header class="inspector-header">
+        <button id="back" type="button" class="icon-button" aria-label="Back" title="Back" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7m-7 7h14"/></svg>
+        </button>
+        <h3 id="inspector-title" data-i18n="inspection">Inspection</h3>
+        <button id="reset-inspector" type="button" class="icon-button" aria-label="Reset window position and size" data-i18n-aria="resetInspector" title="Reset window position and size" data-i18n-title="resetInspector">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8m0-5v5h5"/></svg>
+        </button>
+        <button id="close-inspector" type="button" class="icon-button" aria-label="Close inspection" data-i18n-aria="closeInspector" title="Close inspection" data-i18n-title="closeInspector">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg>
+        </button>
+      </header>
+      <div id="inspection-body"></div>
+      <span class="inspector-resize" data-edge="n" aria-hidden="true"></span>
+      <span class="inspector-resize" data-edge="e" aria-hidden="true"></span>
+      <span class="inspector-resize" data-edge="s" aria-hidden="true"></span>
+      <span class="inspector-resize" data-edge="w" aria-hidden="true"></span>
+      <span class="inspector-resize" data-edge="nw" aria-hidden="true"></span>
+      <span class="inspector-resize" data-edge="ne" aria-hidden="true"></span>
+      <span class="inspector-resize" data-edge="sw" aria-hidden="true"></span>
+      <span class="inspector-resize" data-edge="se" aria-hidden="true"></span>
+    </aside>
+  </main>
+  <div id="zoom-tools" class="zoom-tools tool-surface" hidden>
+    <button id="zoom-out" class="icon-button" type="button" aria-label="Zoom out" data-i18n-aria="zoomOut" title="Zoom out" data-i18n-title="zoomOut">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>
+    </button>
+    <button id="zoom-in" class="icon-button" type="button" aria-label="Zoom in" data-i18n-aria="zoomIn" title="Zoom in" data-i18n-title="zoomIn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7v14"/></svg>
+    </button>
+    <button id="fit-graph" class="icon-button fit-button" type="button" aria-label="Fit graph" data-i18n-aria="fitGraph" title="Fit graph" data-i18n-title="fitGraph">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3m0 8v3a2 2 0 0 1-2 2h-3m-8 0H5a2 2 0 0 1-2-2v-3"/></svg><span data-i18n="fitShort">Fit</span>
+    </button>
+    <output id="zoom-level">100%</output>
+  </div>
+  <button id="minimap" class="minimap tool-surface" type="button" aria-label="Overview map" data-i18n-aria="minimap" title="Overview map" data-i18n-title="minimap" hidden>
+    <svg id="map-image" aria-hidden="true">
+      <g id="map-graph"></g><rect id="map-window" class="map-window"/>
+    </svg>
+  </button>
+</body>
+</html>

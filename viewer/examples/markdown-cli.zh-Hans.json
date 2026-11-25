@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "language": "zh-Hans",
+  "title": "Markdown 命令行工具对比（合成样例）",
+  "repositories": {
+    "own": { "id": "marginlint", "name": "Marginlint", "revision": { "kind": "revision", "value": "demo-cli-01", "state": "虚构快照，无未提交改动" } },
+    "reference": { "id": "inkcheck", "name": "Inkcheck", "revision": { "kind": "snapshot", "value": "demo-cli-02", "state": "虚构的只读快照" } }
+  },
+  "scope": {
+    "goal": "比较本地运行和自动化场景下的 Markdown 诊断与退出行为。",
+    "included": ["参数解析", "规则调度", "诊断输出", "退出结果"],
+    "excluded": ["规则是否一致", "实际运行", "分发工具"],
+    "gaps": [
+      { "id": "G-runtime", "label": "未验证运行行为", "note": "本样例中的定位信息均为虚构，拟议的验收测试未运行。" }
+    ]
+  },
+  "nodes": [
+    { "id": "N-own-args", "repo": "marginlint", "label": "解析参数", "evidence": ["E-01"] },
+    { "id": "N-own-lint", "repo": "marginlint", "label": "检查 Markdown", "evidence": ["E-02"] },
+    { "id": "N-own-output", "repo": "marginlint", "label": "输出诊断", "evidence": ["E-03", "E-04"] },
+    { "id": "N-ref-args", "repo": "inkcheck", "label": "解析参数", "evidence": ["E-05"] },
+    { "id": "N-ref-lint", "repo": "inkcheck", "label": "检查 Markdown", "evidence": ["E-06"] },
+    { "id": "N-ref-text", "repo": "inkcheck", "label": "输出易读文本", "evidence": ["E-07"] },
+    { "id": "N-ref-json", "repo": "inkcheck", "label": "输出 JSON 结果", "evidence": ["E-07", "E-08"] },
+    { "id": "N-ref-exit", "repo": "inkcheck", "label": "输入错误时退出", "evidence": ["E-09", "E-10"] }
+  ],
+  "edges": [
+    { "id": "L-own-check", "kind": "call", "from": "N-own-args", "to": "N-own-lint", "label": "调度规则", "evidence": ["E-01"] },
+    { "id": "L-own-diagnostics", "kind": "data", "from": "N-own-lint", "to": "N-own-output", "label": "将检查结果传给文本输出模块", "evidence": ["E-03"] },
+    { "id": "L-ref-check", "kind": "call", "from": "N-ref-args", "to": "N-ref-lint", "label": "调度规则", "evidence": ["E-05"] },
+    { "id": "L-ref-text", "kind": "data", "from": "N-ref-lint", "to": "N-ref-text", "label": "将检查结果传给文本输出模块", "evidence": ["E-07"] },
+    { "id": "L-ref-json", "kind": "data", "from": "N-ref-lint", "to": "N-ref-json", "label": "将检查结果传给 JSON 输出模块", "evidence": ["E-07"] },
+    { "id": "L-ref-exit", "kind": "call", "from": "N-ref-args", "to": "N-ref-exit", "label": "处理无法读取的输入", "evidence": ["E-09"] }
+  ],
+  "correspondences": [
+    { "id": "C-input", "status": "matched", "label": "两个工具均在入口解析选项", "own": ["N-own-args"], "reference": ["N-ref-args"], "evidence": ["E-01", "E-05"], "note": "两边都在调度规则检查前对输入做规范化处理。" },
+    { "id": "C-check", "status": "matched", "label": "两个工具均调度 Markdown 规则", "own": ["N-own-lint"], "reference": ["N-ref-lint"], "evidence": ["E-02", "E-06"], "note": "两边的职责对应，但未比较各自包含的规则。" },
+    { "id": "C-output", "status": "matched", "label": "参考仓库拆分了输出职责", "own": ["N-own-output"], "reference": ["N-ref-text", "N-ref-json"], "evidence": ["E-03", "E-07", "E-08"], "note": "Marginlint 使用一个输出模块，Inkcheck 则分别调度文本和 JSON 输出模块。交接任务只涉及退出结果。" },
+    { "id": "C-exit", "status": "checked-no-match", "label": "检查范围内未找到对应的退出码测试", "own": [], "reference": ["N-ref-exit"], "evidence": ["E-04", "E-09", "E-10"], "note": "已检查己方 CLI 测试和入口路径，未在该范围内找到针对无法读取输入的显式退出码断言；CLI 仍可能返回有用的退出码。" }
+  ],
+  "evidence": [
+    { "id": "E-01", "repo": "marginlint", "revision": "demo-cli-01", "path": "src/cli.ts", "range": { "start": 12, "end": 29 }, "supports": "解析选项，并将规范化后的输入传给检查器。", "limits": "仅静态追踪，未在运行时确认。" },
+    { "id": "E-02", "repo": "marginlint", "revision": "demo-cli-01", "path": "src/check.ts", "symbol": "runRules", "supports": "执行已配置的 Markdown 规则并汇集检查结果。", "limits": "不能证明与其他规则集一致。" },
+    { "id": "E-03", "repo": "marginlint", "revision": "demo-cli-01", "path": "src/cli.ts", "range": { "start": 30, "end": 44 }, "supports": "将检查结果转给一个文本输出模块；退出处理由 CLI 负责。", "limits": "未实测进程退出行为。" },
+    { "id": "E-04", "repo": "marginlint", "revision": "demo-cli-01", "path": "test/cli.test.ts", "range": { "start": 9, "end": 38 }, "supports": "范围内的用例断言了诊断文本，但未断言进程退出码。", "limits": "只覆盖本次检查的测试套件。" },
+    { "id": "E-05", "repo": "inkcheck", "revision": "demo-cli-02", "path": "cmd/inkcheck/main.go", "range": { "start": 20, "end": 42 }, "supports": "解析命令行选项并调用规则引擎。", "limits": "仅涉及静态调用路径。" },
+    { "id": "E-06", "repo": "inkcheck", "revision": "demo-cli-02", "path": "internal/lint/run.go", "symbol": "Run", "supports": "执行 Markdown 检查并返回结构化结果。", "limits": "未比较规则或性能。" },
+    { "id": "E-07", "repo": "inkcheck", "revision": "demo-cli-02", "path": "internal/report/write.go", "range": { "start": 14, "end": 41 }, "supports": "根据格式选项选择易读文本输出或 JSON 输出。", "limits": "未检查与 Marginlint 的输出兼容性。" },
+    { "id": "E-08", "repo": "inkcheck", "revision": "demo-cli-02", "path": "internal/report/json.go", "symbol": "writeJSON", "supports": "将诊断信息序列化为机器可读的格式。", "limits": "未实际执行序列化。" },
+    { "id": "E-09", "repo": "inkcheck", "revision": "demo-cli-02", "path": "cmd/inkcheck/main.go", "range": { "start": 43, "end": 59 }, "supports": "无法读取输入时进入显式错误退出分支。", "limits": "仅静态追踪了该分支。" },
+    { "id": "E-10", "repo": "inkcheck", "revision": "demo-cli-02", "path": "cmd/inkcheck/main_test.go", "range": { "start": 44, "end": 71 }, "supports": "测试代码用退出码 0、1、2 区分无违规、有违规和无法读取输入。", "limits": "测试代码只能证明这些断言存在，不能证明测试已通过。" }
+  ],
+  "views": {
+    "overview": {
+      "id": "V-overview", "label": "架构总览", "note": "输入处理、规则检查和诊断输出的职责分布。",
+      "nodes": ["N-own-args", "N-own-lint", "N-own-output", "N-ref-args", "N-ref-lint", "N-ref-text", "N-ref-json", "N-ref-exit"],
+      "edges": ["L-own-check", "L-own-diagnostics", "L-ref-check", "L-ref-text", "L-ref-json", "L-ref-exit"],
+      "correspondences": ["C-input", "C-check", "C-output", "C-exit"]
+    },
+    "flows": [
+      {
+        "id": "V-output", "label": "诊断与退出流程", "note": "两边共有的一次 CLI 运行流程，包含参考仓库独有的错误分支。",
+        "nodes": ["N-own-args", "N-own-lint", "N-own-output", "N-ref-args", "N-ref-lint", "N-ref-text", "N-ref-json", "N-ref-exit"],
+        "edges": ["L-own-check", "L-own-diagnostics", "L-ref-check", "L-ref-text", "L-ref-json", "L-ref-exit"],
+        "correspondences": ["C-output", "C-exit"]
+      }
+    ]
+  },
+  "candidates": [
+    {
+      "id": "H-01", "title": "明确稳定的 CLI 退出码", "decision": "adapt", "approach": "test-cases-only",
+      "targets": ["C-output", "C-exit", "N-ref-exit"],
+      "evidence": { "own": ["E-03", "E-04"], "reference": ["E-09", "E-10"] },
+      "fact": "已检查的己方 CLI 测试验证诊断文本。参考测试则分别断言无违规、有违规和输入错误的退出码。",
+      "inference": "加入等效的行为测试有望稳定自动化集成所依赖的约定，无需照搬格式化模块的拆分。",
+      "recommendation": "只借鉴验收场景，在现有测试工具中独立实现，不复制源码。",
+      "benefit": "自动化可以区分检查发现的违规与调用或输入故障。",
+      "license": "不建议复用源码；未评估参考仓库的许可证或分发权限。",
+      "stackFit": "这些验收用例针对进程行为，可用现有 TypeScript 测试工具编写。",
+      "maintenanceCost": "维护三个进程级测试样例及稳定的预期退出码，无需新增运行时依赖。",
+      "architectureImpact": "保留参数解析、规则检查和文本输出；仅在必要时调整 CLI 对外可观察的退出约定。"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T-cli-exit", "candidate": "H-01", "kind": "approval", "title": "添加退出码验收测试",
+      "modules": ["test/cli.test.ts", "src/cli.ts（仅在行为不一致时）"],
+      "dependencies": ["修改前确认公开的退出码约定。"],
+      "steps": ["为己方新增三类测试输入：无违规、有违规、文件无法读取。", "断言进程的退出结果，不依赖输出文本的格式。"],
+      "acceptance": "无违规输入退出码为 0，存在 Markdown 违规时为 1，输入不可读时为 2。现有诊断文本保持不变。",
+      "rollback": "撤销新增的断言和任何退出码改动；无需回滚状态或迁移。",
+      "evidence": ["E-03", "E-04", "E-09", "E-10"]
+    }
+  ]
+}
