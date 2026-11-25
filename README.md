@@ -6,11 +6,11 @@ Compare your repository with one external reference repository, matching what th
 
 ## Example Run
 
-These screenshots show the actual local viewer in Simplified Chinese, using the public [synthetic Markdown CLI report](viewer/examples/markdown-cli.zh-Hans.json). They contain no real repository data. You can also load the [English version of the same example](viewer/examples/markdown-cli.json).
+These screenshots were captured in the local viewer using the public [English Markdown CLI sample report](viewer/examples/markdown-cli.json). The sample is synthetic and contains no real repository data.
 
-![Architecture overview aligning input, checking, and output responsibilities across the fictional Marginlint and Inkcheck repositories](docs/images/viewer-overview.png)
+![Architecture overview aligning input, checking, and output responsibilities across the fictional Marginlint and Inkcheck repositories](docs/images/viewer-overview.en.png)
 
-![Output responsibility comparison showing an exit-code recommendation, evidence from both sides, and an acceptance-test task awaiting approval](docs/images/viewer-detail.png)
+![Output responsibility comparison showing an exit-code recommendation, evidence from both sides, and an acceptance-test task awaiting approval](docs/images/viewer-detail.en.png)
 
 ## Read and Write Boundaries
 
